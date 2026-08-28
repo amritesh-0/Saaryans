@@ -4,7 +4,7 @@ import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import StepIndicator from '../../components/UI/StepIndicator/StepIndicator';
 import Button from '../../components/UI/Button/Button';
-import { ShieldIcon, TruckIcon, ReturnIcon, CloseIcon } from '../../assets/icons';
+import { ShieldIcon, TruckIcon, ReturnIcon, CloseIcon, CartIcon, CheckCircleIcon } from '../../assets/icons';
 import './Cart.css';
 
 const Cart = () => {
@@ -59,7 +59,9 @@ const Cart = () => {
         <div className="container">
           <StepIndicator currentStep={0} />
           <div className="cart-empty">
-            <div className="cart-empty__icon">🛍️</div>
+            <div className="cart-empty__icon">
+              <CartIcon size={48} />
+            </div>
             <h2 className="cart-empty__title">Your Shopping Bag is Empty</h2>
             <p className="cart-empty__desc">
               Explore our exquisite handcrafted sarees and ethnic collection to find your perfect match.
@@ -199,7 +201,9 @@ const Cart = () => {
               {couponCode ? (
                 <div className="coupon-applied-chip">
                   <div className="coupon-applied-left">
-                    <span className="coupon-applied-tag">✓ {couponCode}</span>
+                    <span className="coupon-applied-tag">
+                      <CheckCircleIcon size={14} /> {couponCode}
+                    </span>
                     <span className="coupon-applied-desc">Saved ₹{couponDiscount.toLocaleString()}</span>
                   </div>
                   <button
@@ -302,7 +306,7 @@ const Cart = () => {
 
               {totalSavings > 0 && (
                 <div className="cart-savings-banner">
-                  ✨ You are saving <strong>₹{totalSavings.toLocaleString()}</strong> on this order
+                  You are saving <strong>₹{totalSavings.toLocaleString()}</strong> on this order
                 </div>
               )}
 

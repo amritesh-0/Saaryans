@@ -37,7 +37,7 @@ const Newsletter = () => {
             <p className="newsletter__subtitle">JOIN THE OUR SAARYANS FAMILY</p>
             {isSubmitted ? (
               <div className="newsletter__success">
-                Thank you for subscribing! ✨
+                Thank you for subscribing.
               </div>
             ) : (
               <form className="newsletter__form" onSubmit={handleSubmit}>

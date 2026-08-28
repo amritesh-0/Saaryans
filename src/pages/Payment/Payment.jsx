@@ -177,10 +177,10 @@ const Payment = () => {
                   <div className="payment-method-body" onClick={(e) => e.stopPropagation()}>
                     <div className="upi-app-grid">
                       {[
-                        { id: 'gpay', name: 'Google Pay', icon: '🟢' },
-                        { id: 'phonepe', name: 'PhonePe', icon: '🟣' },
-                        { id: 'paytm', name: 'Paytm UPI', icon: '🔵' },
-                        { id: 'custom', name: 'Other UPI ID', icon: '⚡' },
+                        { id: 'gpay', name: 'Google Pay' },
+                        { id: 'phonepe', name: 'PhonePe' },
+                        { id: 'paytm', name: 'Paytm' },
+                        { id: 'custom', name: 'Other UPI ID' },
                       ].map((app) => (
                         <button
                           key={app.id}
@@ -188,7 +188,6 @@ const Payment = () => {
                           className={`upi-app-btn ${selectedUpiApp === app.id ? 'upi-app-btn--active' : ''}`}
                           onClick={() => setSelectedUpiApp(app.id)}
                         >
-                          <span>{app.icon}</span>
                           <span>{app.name}</span>
                         </button>
                       ))}
@@ -343,7 +342,7 @@ const Payment = () => {
                 {selectedMethod === 'cod' && (
                   <div className="payment-method-body" onClick={(e) => e.stopPropagation()}>
                     <p className="cod-note">
-                      💵 You can pay in cash or via UPI to our delivery partner upon doorstep delivery.
+                      You can pay in cash or via UPI to our delivery partner upon doorstep delivery.
                     </p>
                   </div>
                 )}

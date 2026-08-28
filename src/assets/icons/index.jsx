@@ -168,3 +168,46 @@ export const MenuIcon = ({ size = 24, ...props }) => (
     <line x1="3" y1="18" x2="21" y2="18" />
   </svg>
 );
+
+export const PackageIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M16.5 9.4 7.55 4.24a1.78 1.78 0 0 0-2.5 1.55v12.42a1.78 1.78 0 0 0 2.5 1.55L16.5 14.6" />
+    <polyline points="3.29 7 12 12 20.71 7" />
+    <line x1="12" y1="22" x2="12" y2="12" />
+    <path d="m21 16-9 5-9-5V8l9-5 9 5v8z" />
+  </svg>
+);
+
+export const TagIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+    <path d="M7 7h.01" />
+  </svg>
+);
+
+export const LogoutIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+export const CreditCardIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect width="20" height="14" x="2" y="5" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+  </svg>
+);
+
+export const ZapIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+export const CrownIcon = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+  </svg>
+);

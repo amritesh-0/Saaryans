@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CloseIcon,
   EyeIcon,
@@ -7,12 +8,17 @@ import {
   GoogleIcon,
 } from '../../../assets/icons';
 import Button from '../../UI/Button/Button';
+import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 import './LoginModal.css';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { login, demoLogin } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) {
@@ -20,7 +26,9 @@ const LoginModal = ({ isOpen, onClose }) => {
     } else {
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -37,8 +45,17 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle login logic
-    console.log('Login:', { email, password });
+    login(email, password);
+    showToast('Signed in successfully! Welcome to Saaryans.', 'success');
+    onClose();
+    navigate('/account');
+  };
+
+  const handleDemoLogin = () => {
+    demoLogin();
+    showToast('Welcome back, Priya! (Demo Account Active)', 'success');
+    onClose();
+    navigate('/account');
   };
 
   return (
@@ -57,6 +74,30 @@ const LoginModal = ({ isOpen, onClose }) => {
         <p className="login-modal__subtitle">
           Join the Saaryans community today and stay ahead of the latest fashion trends
         </p>
+
+        {/* 1-Click Demo Login Banner */}
+        <div className="demo-login-box">
+          <div className="demo-login-info">
+            <span className="demo-avatar">P</span>
+            <div>
+              <strong>Quick Demo Login</strong>
+              <p>Priya Sharma (Royal Gold Member)</p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={handleDemoLogin}
+            id="quick-demo-login-btn"
+          >
+            Instant Login
+          </Button>
+        </div>
+
+        <div className="login-modal__divider">
+          <span>OR CONTINUE WITH EMAIL</span>
+        </div>
 
         <form className="login-modal__form" onSubmit={handleSubmit}>
           <div className="login-modal__field">
@@ -99,24 +140,35 @@ const LoginModal = ({ isOpen, onClose }) => {
             SIGN IN
           </Button>
 
-          <Button type="button" variant="outlined" fullWidth size="lg">
-            Use Mobile Number Instead
+          <Button
+            type="button"
+            variant="outlined"
+            fullWidth
+            size="lg"
+            onClick={handleDemoLogin}
+          >
+            Use Mobile OTP Instead
           </Button>
         </form>
 
-        <a href="#" className="login-modal__forgot">Forget Password?</a>
+        <a href="#forgot" onClick={(e) => { e.preventDefault(); showToast('Password reset link sent to demo email!', 'info'); }} className="login-modal__forgot">
+          Forget Password?
+        </a>
 
         <div className="login-modal__social">
-          <a href="#" className="login-modal__social-btn" aria-label="Login with Facebook">
+          <button type="button" onClick={handleDemoLogin} className="login-modal__social-btn" aria-label="Login with Facebook">
             <FacebookIcon size={20} />
-          </a>
-          <a href="#" className="login-modal__social-btn" aria-label="Login with Google">
+          </button>
+          <button type="button" onClick={handleDemoLogin} className="login-modal__social-btn" aria-label="Login with Google">
             <GoogleIcon size={20} />
-          </a>
+          </button>
         </div>
 
         <p className="login-modal__signup">
-          Don't have an account? <a href="#" className="login-modal__signup-link">Sign Up</a>
+          Don't have an account?{' '}
+          <a href="#signup" onClick={(e) => { e.preventDefault(); handleDemoLogin(); }} className="login-modal__signup-link">
+            Sign Up
+          </a>
         </p>
       </div>
     </div>

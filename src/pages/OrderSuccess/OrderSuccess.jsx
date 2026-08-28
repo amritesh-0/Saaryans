@@ -118,7 +118,7 @@ const OrderSuccess = () => {
 
               <div className="order-payment-box">
                 <span className="box-subheading">Payment Method</span>
-                <p><strong>{order.paymentMethod}</strong> (Payment Verified ✓)</p>
+                <p><strong>{order.paymentMethod}</strong> (Payment Verified)</p>
                 <div className="order-total-paid">
                   <span>Total Amount Paid:</span>
                   <strong>₹{order.totalAmount.toLocaleString()}</strong>

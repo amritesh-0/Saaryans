@@ -102,7 +102,7 @@ const Checkout = () => {
                 className="checkout-demo-btn"
                 onClick={handleFillDemo}
               >
-                ⚡ Fill Demo Address
+                Fill Demo Address
               </button>
             </div>
 

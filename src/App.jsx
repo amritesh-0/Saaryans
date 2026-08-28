@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import Header from './components/Layout/Header/Header';
@@ -11,6 +12,7 @@ import Cart from './pages/Cart/Cart';
 import Checkout from './pages/Checkout/Checkout';
 import Payment from './pages/Payment/Payment';
 import OrderSuccess from './pages/OrderSuccess/OrderSuccess';
+import Account from './pages/Account/Account';
 import './styles/global.css';
 
 // Component to scroll to top on route change
@@ -36,6 +38,7 @@ function AppContent() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/account" element={<Account />} />
         {/* Fallback for category links */}
         <Route path="/category/:slug" element={<Home />} />
       </Routes>
@@ -49,9 +52,11 @@ function App() {
   return (
     <Router>
       <ToastProvider>
-        <CartProvider>
-          <AppContent />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
+        </AuthProvider>
       </ToastProvider>
     </Router>
   );

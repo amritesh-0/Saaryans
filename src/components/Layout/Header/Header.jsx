@@ -8,16 +8,23 @@ import {
   WhatsAppIcon,
   MenuIcon,
   CloseIcon,
+  PackageIcon,
+  LocationIcon,
+  TagIcon,
+  LogoutIcon,
 } from '../../../assets/icons';
 import { navCategories } from '../../../data/categories';
 import { useCart } from '../../../context/CartContext';
+import { useAuth } from '../../../context/AuthContext';
 import './Header.css';
 
 const Header = ({ onLoginClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,14 +68,96 @@ const Header = ({ onLoginClick }) => {
             >
               <SearchIcon size={20} />
             </button>
-            <button
-              className="header__action-btn"
-              onClick={onLoginClick}
-              aria-label="Account"
-              id="account-btn"
-            >
-              <UserIcon size={20} />
-            </button>
+            {/* Account / User Menu */}
+            <div className="header__user-wrapper">
+              {isAuthenticated ? (
+                <button
+                  className="header__action-btn header__action-btn--user"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  aria-label="User menu"
+                  id="user-menu-btn"
+                >
+                  <span className="header__user-avatar">{user.name ? user.name.charAt(0) : 'P'}</span>
+                  <span className="header__user-name">{user.name.split(' ')[0]}</span>
+                </button>
+              ) : (
+                <button
+                  className="header__action-btn"
+                  onClick={onLoginClick}
+                  aria-label="Account"
+                  id="account-btn"
+                >
+                  <UserIcon size={20} />
+                </button>
+              )}
+
+              {/* User Dropdown */}
+              {isAuthenticated && isUserMenuOpen && (
+                <>
+                  <div className="header__dropdown-backdrop" onClick={() => setIsUserMenuOpen(false)} />
+                  <div className="header__user-dropdown">
+                    <div className="header__dropdown-header">
+                      <p className="dropdown-user-greeting">Hello,</p>
+                      <strong className="dropdown-user-name">{user.name}</strong>
+                      <span className="dropdown-user-badge">{user.membershipTier}</span>
+                    </div>
+
+                    <div className="header__dropdown-divider" />
+
+                    <ul className="header__dropdown-list">
+                      <li>
+                        <Link
+                          to="/account?tab=orders"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="header__dropdown-item"
+                        >
+                          <PackageIcon size={16} /> Orders & Returns
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/account?tab=profile"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="header__dropdown-item"
+                        >
+                          <UserIcon size={16} /> Profile Details
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/account?tab=addresses"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="header__dropdown-item"
+                        >
+                          <LocationIcon size={16} /> Saved Addresses
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/account?tab=coupons"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="header__dropdown-item"
+                        >
+                          <TagIcon size={16} /> Coupons & Rewards
+                        </Link>
+                      </li>
+                    </ul>
+
+                    <div className="header__dropdown-divider" />
+
+                    <button
+                      className="header__dropdown-logout"
+                      onClick={() => {
+                        logout();
+                        setIsUserMenuOpen(false);
+                      }}
+                    >
+                      <LogoutIcon size={16} /> Log Out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             <button className="header__action-btn" aria-label="Wishlist" id="wishlist-btn">
               <HeartIcon size={20} />
             </button>
