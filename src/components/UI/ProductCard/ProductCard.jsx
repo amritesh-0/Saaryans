@@ -1,10 +1,11 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HeartIcon } from '../../../assets/icons';
+import { useWishlist } from '../../../context/WishlistContext';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const wishlisted = isInWishlist(product.id);
 
   const discount = Math.round(
     ((product.originalPrice - product.price) / product.originalPrice) * 100
@@ -23,14 +24,15 @@ const ProductCard = ({ product }) => {
           <span className="product-card__badge">Sale</span>
         )}
         <button
-          className={`product-card__wishlist ${isWishlisted ? 'product-card__wishlist--active' : ''}`}
+          className={`product-card__wishlist ${wishlisted ? 'product-card__wishlist--active' : ''}`}
           onClick={(e) => {
             e.preventDefault();
-            setIsWishlisted(!isWishlisted);
+            e.stopPropagation();
+            toggleWishlist(product);
           }}
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <HeartIcon size={20} filled={isWishlisted} />
+          <HeartIcon size={20} filled={wishlisted} />
         </button>
       </Link>
       <div className="product-card__info">

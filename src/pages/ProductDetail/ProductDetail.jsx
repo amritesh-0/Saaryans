@@ -12,6 +12,7 @@ import {
 import Button from '../../components/UI/Button/Button';
 import { products } from '../../data/products';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useToast } from '../../context/ToastContext';
 import './ProductDetail.css';
 
@@ -20,13 +21,15 @@ const ProductDetail = () => {
   const product = products.find((p) => p.id === Number(id));
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
   const [sizeError, setSizeError] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [openAccordion, setOpenAccordion] = useState('details');
+
+  const wishlisted = product ? isInWishlist(product.id) : false;
 
   if (!product) {
     return (
@@ -122,14 +125,12 @@ const ProductDetail = () => {
               className="product-detail__image"
             />
             <button
-              className={`product-detail__wishlist-btn ${isWishlisted ? 'product-detail__wishlist-btn--active' : ''}`}
-              onClick={() => {
-                setIsWishlisted(!isWishlisted);
-                showToast(isWishlisted ? 'Removed from Wishlist' : 'Saved to Wishlist!', 'info');
-              }}
-              aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              className={`product-detail__wishlist-btn ${wishlisted ? 'product-detail__wishlist-btn--active' : ''}`}
+              onClick={() => toggleWishlist(product)}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              id="product-wishlist-toggle-btn"
             >
-              <HeartIcon size={22} filled={isWishlisted} />
+              <HeartIcon size={22} filled={wishlisted} />
             </button>
           </div>
         </div>

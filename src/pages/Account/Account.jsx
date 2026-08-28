@@ -83,6 +83,7 @@ const Account = () => {
 
   const handleTabChange = (tabKey) => {
     setSearchParams({ tab: tabKey });
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   };
 
   const handleSaveProfile = (e) => {

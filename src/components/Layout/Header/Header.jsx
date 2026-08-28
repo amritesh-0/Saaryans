@@ -15,6 +15,7 @@ import {
 } from '../../../assets/icons';
 import { navCategories } from '../../../data/categories';
 import { useCart } from '../../../context/CartContext';
+import { useWishlist } from '../../../context/WishlistContext';
 import { useAuth } from '../../../context/AuthContext';
 import './Header.css';
 
@@ -24,6 +25,7 @@ const Header = ({ onLoginClick }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { wishlistCount } = useWishlist();
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -141,6 +143,15 @@ const Header = ({ onLoginClick }) => {
                           <TagIcon size={16} /> Coupons & Rewards
                         </Link>
                       </li>
+                      {/* <li>
+                        <Link
+                          to="/wishlist"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="header__dropdown-item"
+                        >
+                          <HeartIcon size={16} /> My Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
+                        </Link>
+                      </li> */}
                     </ul>
 
                     <div className="header__dropdown-divider" />
@@ -158,9 +169,10 @@ const Header = ({ onLoginClick }) => {
                 </>
               )}
             </div>
-            <button className="header__action-btn" aria-label="Wishlist" id="wishlist-btn">
+            <Link to="/wishlist" className="header__action-btn header__action-btn--wishlist" aria-label="Wishlist" id="wishlist-btn">
               <HeartIcon size={20} />
-            </button>
+              {wishlistCount > 0 && <span className="header__cart-count header__cart-count--wishlist">{wishlistCount}</span>}
+            </Link>
             <Link to="/cart" className="header__action-btn header__action-btn--cart" aria-label="Cart" id="cart-btn">
               <CartIcon size={20} />
               {itemCount > 0 && <span className="header__cart-count">{itemCount}</span>}

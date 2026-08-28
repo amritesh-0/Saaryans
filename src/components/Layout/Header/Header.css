@@ -245,6 +245,10 @@
   line-height: 1;
 }
 
+.header__cart-count--wishlist {
+  background: var(--color-sale-red);
+}
+
 .header__mobile-toggle {
   display: none;
   color: var(--color-primary-dark);
