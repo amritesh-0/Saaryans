@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   HeartIcon,
   TruckIcon,
@@ -11,16 +11,22 @@ import {
 } from '../../assets/icons';
 import Button from '../../components/UI/Button/Button';
 import { products } from '../../data/products';
+import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import './ProductDetail.css';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find((p) => p.id === Number(id));
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [sizeError, setSizeError] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState(null);
+  const [openAccordion, setOpenAccordion] = useState('details');
 
   if (!product) {
     return (
@@ -37,6 +43,28 @@ const ProductDetail = () => {
     ((product.originalPrice - product.price) / product.originalPrice) * 100
   );
 
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      setSizeError(true);
+      showToast('Please select a size first!', 'error');
+      return;
+    }
+    setSizeError(false);
+    addToCart(product, selectedSize, 1);
+    showToast(`Added "${product.name.slice(0, 25)}..." to Bag!`, 'success');
+  };
+
+  const handleBuyNow = () => {
+    if (!selectedSize) {
+      setSizeError(true);
+      showToast('Please select a size first!', 'error');
+      return;
+    }
+    setSizeError(false);
+    addToCart(product, selectedSize, 1);
+    navigate('/cart');
+  };
+
   const accordionItems = [
     { key: 'details', title: 'Product Details', content: product.description },
     {
@@ -52,12 +80,12 @@ const ProductDetail = () => {
     {
       key: 'shipping',
       title: 'Shipping & Returns',
-      content: 'Free shipping on all orders. Easy returns within 48 hours of delivery. Items must be in original condition with tags attached. Refund will be processed within 5-7 business days.',
+      content: 'Free shipping on all orders above ₹999. Easy returns within 48 hours of delivery. Items must be in original condition with tags attached. Refund will be processed within 5-7 business days.',
     },
     {
       key: 'faqs',
       title: 'FAQs',
-      content: 'Q: Is the blouse piece included? A: Yes, an unstitched blouse piece is included. Q: Can I get custom stitching? A: Yes, we offer custom blouse stitching at an additional cost. Contact us for details.',
+      content: 'Q: Is the blouse piece included? A: Yes, an unstitched blouse piece is included. Q: Can I get custom stitching? A: Yes, we offer custom blouse stitching at an additional cost. Contact us on WhatsApp for details.',
     },
   ];
 
@@ -67,9 +95,9 @@ const ProductDetail = () => {
       <nav className="product-detail__breadcrumb container" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
         <span className="product-detail__breadcrumb-sep">›</span>
-        <Link to={`/category/${product.category.toLowerCase()}`}>{product.category}</Link>
+        <Link to="/">{product.category}</Link>
         <span className="product-detail__breadcrumb-sep">›</span>
-        <Link to="#">{product.subcategory}</Link>
+        <span>{product.subcategory}</span>
       </nav>
 
       <div className="product-detail__main container">
@@ -95,7 +123,10 @@ const ProductDetail = () => {
             />
             <button
               className={`product-detail__wishlist-btn ${isWishlisted ? 'product-detail__wishlist-btn--active' : ''}`}
-              onClick={() => setIsWishlisted(!isWishlisted)}
+              onClick={() => {
+                setIsWishlisted(!isWishlisted);
+                showToast(isWishlisted ? 'Removed from Wishlist' : 'Saved to Wishlist!', 'info');
+              }}
               aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             >
               <HeartIcon size={22} filled={isWishlisted} />
@@ -116,18 +147,33 @@ const ProductDetail = () => {
 
           {/* Size Selector */}
           <div className="product-detail__sizes">
-            <h3 className="product-detail__sizes-title">SIZE</h3>
+            <div className="product-detail__sizes-header">
+              <h3 className="product-detail__sizes-title">SELECT SIZE</h3>
+              {sizeError && <span className="size-error-text">Please select a size</span>}
+            </div>
             <div className="product-detail__size-options">
               {product.sizes.map((size) => (
                 <button
                   key={size}
+                  type="button"
                   className={`product-detail__size-btn ${selectedSize === size ? 'product-detail__size-btn--active' : ''}`}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => {
+                    setSelectedSize(size);
+                    setSizeError(false);
+                  }}
+                  id={`size-btn-${size}`}
                 >
                   {size}
                 </button>
               ))}
-              <button className="product-detail__size-btn product-detail__size-btn--custom">
+              <button
+                type="button"
+                className={`product-detail__size-btn product-detail__size-btn--custom ${selectedSize === 'Custom' ? 'product-detail__size-btn--active' : ''}`}
+                onClick={() => {
+                  setSelectedSize('Custom');
+                  setSizeError(false);
+                }}
+              >
                 Custom size
               </button>
             </div>
@@ -143,10 +189,22 @@ const ProductDetail = () => {
 
           {/* Action Buttons */}
           <div className="product-detail__actions">
-            <Button variant="outlined" size="lg" fullWidth>
+            <Button
+              variant="outlined"
+              size="lg"
+              fullWidth
+              onClick={handleAddToCart}
+              id="add-to-cart-btn"
+            >
               ADD TO CART
             </Button>
-            <Button variant="primary" size="lg" fullWidth>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={handleBuyNow}
+              id="buy-now-btn"
+            >
               BUY NOW
             </Button>
           </div>
@@ -159,7 +217,7 @@ const ProductDetail = () => {
             </div>
             <div className="product-detail__trust-item">
               <ShieldIcon size={20} />
-              <span>100% purchase protection</span>
+              <span>100% Purchase Protection</span>
             </div>
             <div className="product-detail__trust-item">
               <CheckCircleIcon size={20} />
@@ -167,7 +225,7 @@ const ProductDetail = () => {
             </div>
             <div className="product-detail__trust-item">
               <ReturnIcon size={20} />
-              <span>48 hours easy return</span>
+              <span>48 Hours Easy Return</span>
             </div>
           </div>
 

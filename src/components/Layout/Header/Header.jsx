@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   SearchIcon,
   UserIcon,
@@ -10,12 +10,15 @@ import {
   CloseIcon,
 } from '../../../assets/icons';
 import { navCategories } from '../../../data/categories';
+import { useCart } from '../../../context/CartContext';
 import './Header.css';
 
 const Header = ({ onLoginClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { itemCount } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -69,10 +72,10 @@ const Header = ({ onLoginClick }) => {
             <button className="header__action-btn" aria-label="Wishlist" id="wishlist-btn">
               <HeartIcon size={20} />
             </button>
-            <button className="header__action-btn header__action-btn--cart" aria-label="Cart" id="cart-btn">
+            <Link to="/cart" className="header__action-btn header__action-btn--cart" aria-label="Cart" id="cart-btn">
               <CartIcon size={20} />
-              <span className="header__cart-count">0</span>
-            </button>
+              {itemCount > 0 && <span className="header__cart-count">{itemCount}</span>}
+            </Link>
             <a
               href="https://wa.me/1234567890"
               className="header__action-btn header__action-btn--whatsapp"

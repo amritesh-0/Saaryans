@@ -1,0 +1,99 @@
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.step-indicator__step-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.step-indicator__step-wrapper:last-child {
+  flex: 0;
+}
+
+.step-indicator__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  position: relative;
+}
+
+.step-indicator__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  background: var(--color-cream-dark);
+  color: var(--color-light-gray);
+  border: 2px solid var(--color-light-gray);
+  transition: all var(--transition-base);
+}
+
+.step-indicator__step--active .step-indicator__dot {
+  background: var(--color-gold);
+  color: var(--color-white);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(136, 102, 68, 0.2);
+}
+
+.step-indicator__step--completed .step-indicator__dot {
+  background: var(--color-success);
+  color: var(--color-white);
+  border-color: var(--color-success);
+}
+
+.step-indicator__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.12em;
+  color: var(--color-light-gray);
+  white-space: nowrap;
+}
+
+.step-indicator__step--active .step-indicator__label {
+  color: var(--color-gold);
+}
+
+.step-indicator__step--completed .step-indicator__label {
+  color: var(--color-success);
+}
+
+.step-indicator__line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-cream-dark);
+  margin: 0 var(--space-sm);
+  margin-bottom: var(--space-xl);
+  transition: background var(--transition-base);
+}
+
+.step-indicator__line--completed {
+  background: var(--color-success);
+}
+
+@media (max-width: 480px) {
+  .step-indicator {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .step-indicator__dot {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-xs);
+  }
+
+  .step-indicator__label {
+    font-size: 10px;
+  }
+}
