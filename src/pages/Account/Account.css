@@ -294,7 +294,7 @@
   color: #2E7D32;
 }
 
-.order-status-tag--returned-&-refunded,
+.order-status-tag--returned-refunded,
 .order-status-tag--return-requested {
   background: #FFF3E0;
   color: #E65100;

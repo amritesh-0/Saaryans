@@ -272,7 +272,7 @@ const Account = () => {
                             <span className="order-meta-date">Placed on {order.date}</span>
                           </div>
                           <div className="order-header-right">
-                            <span className={`order-status-tag order-status-tag--${order.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                            <span className={`order-status-tag order-status-tag--${order.status.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
                               {order.status}
                             </span>
                             <span className="order-header-total">Total: ₹{order.total.toLocaleString()}</span>
