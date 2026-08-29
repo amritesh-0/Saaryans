@@ -15,6 +15,8 @@ import Payment from './pages/Payment/Payment';
 import OrderSuccess from './pages/OrderSuccess/OrderSuccess';
 import Account from './pages/Account/Account';
 import Wishlist from './pages/Wishlist/Wishlist';
+import About from './pages/About/About';
+import Contact from './pages/Contact/Contact';
 import './styles/global.css';
 
 // Component to scroll to top automatically on ANY route or query change
@@ -48,15 +50,15 @@ function AppContent() {
         <Route path="/payment" element={<Payment />} />
         <Route path="/order-success" element={<OrderSuccess />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
         {/* Fallback routes for footer & category links */}
         <Route path="/category/:slug" element={<Home />} />
-        <Route path="/about" element={<Home />} />
-        <Route path="/contact" element={<Home />} />
-        <Route path="/privacy-policy" element={<Home />} />
-        <Route path="/shipping-policy" element={<Home />} />
+        <Route path="/privacy-policy" element={<About />} />
+        <Route path="/shipping-policy" element={<About />} />
         <Route path="/cancellation-return" element={<Account />} />
-        <Route path="/terms" element={<Home />} />
-        <Route path="/stores" element={<Home />} />
+        <Route path="/terms" element={<About />} />
+        <Route path="/stores" element={<Contact />} />
         <Route path="/pay-online" element={<Payment />} />
       </Routes>
       <Footer />
