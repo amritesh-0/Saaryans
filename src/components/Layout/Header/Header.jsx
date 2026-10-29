@@ -79,8 +79,8 @@ const Header = ({ onLoginClick }) => {
                   aria-label="User menu"
                   id="user-menu-btn"
                 >
-                  <span className="header__user-avatar">{user.name ? user.name.charAt(0) : 'P'}</span>
-                  <span className="header__user-name">{user.name.split(' ')[0]}</span>
+                  <span className="header__user-avatar">{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
+                  <span className="header__user-name">{user?.name ? user.name.split(' ')[0] : 'Account'}</span>
                 </button>
               ) : (
                 <button
@@ -100,8 +100,8 @@ const Header = ({ onLoginClick }) => {
                   <div className="header__user-dropdown">
                     <div className="header__dropdown-header">
                       <p className="dropdown-user-greeting">Hello,</p>
-                      <strong className="dropdown-user-name">{user.name}</strong>
-                      <span className="dropdown-user-badge">{user.membershipTier}</span>
+                      <strong className="dropdown-user-name">{user?.name || 'Customer'}</strong>
+                      <span className="dropdown-user-badge">{user?.membershipTier || 'Member'}</span>
                     </div>
 
                     <div className="header__dropdown-divider" />

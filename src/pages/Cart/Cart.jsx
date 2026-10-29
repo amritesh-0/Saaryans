@@ -31,10 +31,10 @@ const Cart = () => {
   const [couponInput, setCouponInput] = useState('');
   const [showCouponList, setShowCouponList] = useState(false);
 
-  const handleApplyCoupon = (e) => {
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
     if (!couponInput.trim()) return;
-    const res = applyCoupon(couponInput);
+    const res = await applyCoupon(couponInput);
     if (res.success) {
       showToast(`Coupon "${couponInput.toUpperCase()}" applied successfully!`, 'success');
       setCouponInput('');
@@ -43,8 +43,8 @@ const Cart = () => {
     }
   };
 
-  const handleApplyPresetCoupon = (code) => {
-    const res = applyCoupon(code);
+  const handleApplyPresetCoupon = async (code) => {
+    const res = await applyCoupon(code);
     if (res.success) {
       showToast(`Coupon "${code}" applied!`, 'success');
       setShowCouponList(false);

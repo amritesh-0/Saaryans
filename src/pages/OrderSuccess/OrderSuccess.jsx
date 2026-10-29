@@ -65,16 +65,16 @@ const OrderSuccess = () => {
           </p>
 
           <div className="order-id-chip">
-            <span>Order ID: <strong>{order.orderId}</strong></span>
+            <span>Order ID: <strong>{order.orderId || order.id}</strong></span>
             <span>•</span>
-            <span>Placed on: <strong>{order.orderDate}</strong></span>
+            <span>Placed on: <strong>{order.orderDate || order.date}</strong></span>
           </div>
 
           {/* Delivery estimation bar */}
           <div className="success-delivery-bar">
             <TruckIcon size={24} />
             <div>
-              <strong>Estimated Delivery by {order.estimatedDelivery}</strong>
+              <strong>Estimated Delivery by {order.estimatedDelivery || 'in 3-5 days'}</strong>
               <p>Standard Royal Express Delivery with live tracking updates</p>
             </div>
           </div>
@@ -83,11 +83,11 @@ const OrderSuccess = () => {
           <div className="order-details-grid">
             {/* Items Purchased */}
             <div className="order-details-block">
-              <h3 className="block-title">Items in this Order ({order.items.length})</h3>
+              <h3 className="block-title">Items in this Order ({order.items?.length || 0})</h3>
               <div className="order-items-list">
-                {order.items.map((item) => (
+                {order.items?.map((item) => (
                   <div key={`${item.id}-${item.size}`} className="order-item-row">
-                    <img src={item.image} alt={item.name} className="order-item-thumb" />
+                    {item.image && <img src={item.image} alt={item.name} className="order-item-thumb" />}
                     <div className="order-item-info">
                       <h4 className="order-item-name">{item.name}</h4>
                       <p className="order-item-meta">
@@ -121,7 +121,7 @@ const OrderSuccess = () => {
                 <p><strong>{order.paymentMethod}</strong> (Payment Verified)</p>
                 <div className="order-total-paid">
                   <span>Total Amount Paid:</span>
-                  <strong>₹{order.totalAmount.toLocaleString()}</strong>
+                  <strong>₹{(order.totalAmount || order.total || 0).toLocaleString()}</strong>
                 </div>
               </div>
             </div>
@@ -129,7 +129,10 @@ const OrderSuccess = () => {
 
           {/* Next Steps CTA */}
           <div className="success-actions">
-            <Button variant="primary" size="lg" onClick={() => navigate('/')} id="success-continue-shopping-btn">
+            <Button variant="primary" size="lg" onClick={() => navigate('/account?tab=orders')} id="success-view-orders-btn">
+              VIEW MY ORDERS
+            </Button>
+            <Button variant="outlined" size="lg" onClick={() => navigate('/')} id="success-continue-shopping-btn">
               CONTINUE SHOPPING
             </Button>
             <Button variant="outlined" size="lg" onClick={() => window.print()}>

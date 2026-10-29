@@ -79,6 +79,18 @@ const Account = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        gender: user.gender || 'Female',
+        dob: user.dob || '1995-08-15',
+      });
+    }
+  }, [user]);
+
   if (!user) return null;
 
   const handleTabChange = (tabKey) => {
@@ -95,8 +107,8 @@ const Account = () => {
   const handleOpenAddAddress = () => {
     setEditingAddressId(null);
     setAddressForm({
-      fullName: user.name,
-      mobile: user.phone.replace(/\D/g, '').slice(-10),
+      fullName: user?.name || '',
+      mobile: user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : '',
       pincode: '380015',
       address: '',
       locality: '',

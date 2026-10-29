@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StepIndicator from '../../components/UI/StepIndicator/StepIndicator';
 import Button from '../../components/UI/Button/Button';
 import { ShieldIcon, CheckCircleIcon } from '../../assets/icons';
+import { placeOrder } from '../../services/api';
 import './Payment.css';
 
 const Payment = () => {
   const { items, itemCount, grandTotal, totalMRP, discountOnMRP, couponCode, couponDiscount, deliveryFee, clearCart } = useCart();
+  const { refreshOrders } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -77,7 +80,7 @@ const Payment = () => {
     }
   };
 
-  const handlePay = (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
 
     // Validation per method
@@ -100,33 +103,49 @@ const Payment = () => {
     // Start payment processing simulation
     setIsProcessing(true);
 
-    const orderId = `SAR-${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
-    const finalOrder = {
-      orderId,
-      items: [...items],
-      totalAmount: grandTotal,
-      itemCount,
-      deliveryAddress,
-      paymentMethod: selectedMethod.toUpperCase(),
-      orderDate: new Date().toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-      estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-    };
+    try {
+      const orderPayload = {
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          image: item.image,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          size: item.size,
+          quantity: item.quantity,
+          category: item.category,
+        })),
+        totalAmount: grandTotal,
+        itemCount,
+        deliveryAddress,
+        paymentMethod: selectedMethod.toUpperCase(),
+        couponCode: couponCode || null,
+        couponDiscount: couponDiscount || 0,
+        deliveryFee: deliveryFee || 0,
+      };
 
-    sessionStorage.setItem('saaryans-latest-order', JSON.stringify(finalOrder));
+      // Call backend API to persist order
+      const createdOrder = await placeOrder(orderPayload);
 
-    setTimeout(() => {
-      clearCart();
+      // Refresh orders in auth state
+      if (typeof refreshOrders === 'function') {
+        refreshOrders();
+      }
+
+      // Save order to sessionStorage for the success page
+      sessionStorage.setItem('saaryans-latest-order', JSON.stringify(createdOrder));
+
+      // Allow overlay animation to display nicely for user reassurance
+      setTimeout(() => {
+        clearCart();
+        setIsProcessing(false);
+        navigate('/order-success');
+      }, 1500);
+    } catch (err) {
+      console.error('Order creation failed:', err);
       setIsProcessing(false);
-      navigate('/order-success');
-    }, 2000);
+      showToast(err.message || 'Payment processing failed. Please try again.', 'error');
+    }
   };
 
   return (

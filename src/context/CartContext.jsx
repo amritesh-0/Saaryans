@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { validateCoupon } from '../services/api';
 
 const CartContext = createContext(null);
 
@@ -165,12 +166,38 @@ export function CartProvider({ children }) {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id, size, quantity } });
   };
 
-  const applyCoupon = (code) => {
+  const applyCoupon = async (code) => {
+    if (!code || typeof code !== 'string') {
+      return { success: false, error: 'Please enter a coupon code' };
+    }
+
     const upperCode = code.toUpperCase().trim();
+
+    try {
+      // Validate on backend
+      const res = await validateCoupon(upperCode, computed.subtotal);
+      if (res && res.valid) {
+        dispatch({ type: 'APPLY_COUPON', payload: upperCode });
+        return { success: true, label: res.label || 'Coupon applied' };
+      }
+    } catch (err) {
+      // If backend call fails (e.g. offline or validation error), check local COUPONS
+      if (COUPONS[upperCode]) {
+        const localCoupon = COUPONS[upperCode];
+        if (localCoupon.minOrder > 0 && computed.subtotal < localCoupon.minOrder) {
+          return { success: false, error: `Minimum order of ₹${localCoupon.minOrder} required` };
+        }
+        dispatch({ type: 'APPLY_COUPON', payload: upperCode });
+        return { success: true, label: localCoupon.label };
+      }
+      return { success: false, error: err.message || 'Invalid coupon code' };
+    }
+
     if (COUPONS[upperCode]) {
       dispatch({ type: 'APPLY_COUPON', payload: upperCode });
       return { success: true, label: COUPONS[upperCode].label };
     }
+
     return { success: false, error: 'Invalid coupon code' };
   };
 
