@@ -26,6 +26,10 @@ export const config = {
     templateName: process.env.WHATSAPP_OTP_TEMPLATE_NAME || '',
     templateLanguageCode: process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE_CODE || 'en_US',
     templateHasBodyParameter: process.env.WHATSAPP_OTP_TEMPLATE_HAS_BODY_PARAMETER !== 'false',
+    // Leave empty when the approved template has no dynamic URL button.
+    templateUrlButtonIndex: process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX === undefined || process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX === ''
+      ? null
+      : Number(process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX),
     webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
     appSecret: process.env.META_APP_SECRET || ''
   },

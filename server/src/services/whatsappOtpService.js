@@ -32,12 +32,20 @@ export const verifySessionToken = (token) => {
 };
 
 export const sendOtp = async (phoneNumber) => {
-  const { accessToken, phoneNumberId, templateName, templateLanguageCode, templateHasBodyParameter, graphApiVersion } = config.whatsapp;
+  const { accessToken, phoneNumberId, templateName, templateLanguageCode, templateHasBodyParameter, templateUrlButtonIndex, graphApiVersion } = config.whatsapp;
   if (!accessToken || !phoneNumberId || !templateName) throw new Error('WhatsApp OTP is not configured on the server.');
   for (const [id, record] of OTP_STORE) if (record.expiresAt <= Date.now()) OTP_STORE.delete(id);
   const otp = crypto.randomInt(100000, 1000000).toString();
   const requestId = crypto.randomUUID();
   const components = templateHasBodyParameter ? [{ type: 'body', parameters: [{ type: 'text', text: otp }] }] : [];
+  if (Number.isInteger(templateUrlButtonIndex) && templateUrlButtonIndex >= 0) {
+    components.push({
+      type: 'button',
+      sub_type: 'url',
+      index: String(templateUrlButtonIndex),
+      parameters: [{ type: 'text', text: otp }]
+    });
+  }
   const response = await fetch(`https://graph.facebook.com/${graphApiVersion}/${phoneNumberId}/messages`, {
     method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messaging_product: 'whatsapp', to: phoneNumber.slice(1), type: 'template', template: { name: templateName, language: { code: templateLanguageCode }, ...(components.length ? { components } : {}) } })
