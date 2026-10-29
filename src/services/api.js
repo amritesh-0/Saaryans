@@ -51,6 +51,14 @@ const request = async (endpoint, options = {}) => {
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
+export const sendWhatsAppOtp = async (phoneNumber) => request('/auth/whatsapp/send-otp', {
+  method: 'POST', body: JSON.stringify({ phoneNumber }),
+});
+
+export const verifyWhatsAppOtp = async (requestId, otp) => request('/auth/whatsapp/verify-otp', {
+  method: 'POST', body: JSON.stringify({ requestId, otp }),
+});
+
 /**
  * Verify whether a phone-authed user has completed registration
  * @param {string} token Firebase ID token
@@ -145,6 +153,8 @@ export const fetchProductById = async (id) => {
 
 export default {
   getAuthHeaders,
+  sendWhatsAppOtp,
+  verifyWhatsAppOtp,
   verifyPhoneUser,
   completeProfile,
   getMe,

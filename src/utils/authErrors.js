@@ -32,6 +32,8 @@ export function formatAuthError(err) {
       return 'Too many attempts from this device. Please wait 1–2 minutes before trying again.';
     case 'auth/captcha-check-failed':
       return 'Security verification was closed or timed out. Please tap GET OTP to retry.';
+    case 'auth/invalid-app-credential':
+      return 'Security verification could not be validated. Complete the reCAPTCHA check and try again.';
     case 'auth/network-request-failed':
       return 'Network connection issue. Please check your internet connection and try again.';
     case 'auth/user-disabled':
@@ -63,6 +65,8 @@ export function formatAuthError(err) {
         return 'SMS limit reached. Please try again later.';
       case 'auth/captcha-check-failed':
         return 'Security check timed out or failed. Please try again.';
+      case 'auth/invalid-app-credential':
+        return 'Security verification could not be validated. Complete the reCAPTCHA check and try again.';
       default: {
         const friendly = authMatch[1].replace(/-/g, ' ');
         return `Verification could not be completed (${friendly}). Please try again.`;

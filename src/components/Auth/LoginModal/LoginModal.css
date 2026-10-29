@@ -160,6 +160,12 @@
   gap: 1.25rem;
 }
 
+.login-modal__recaptcha {
+  display: flex;
+  justify-content: center;
+  min-height: 78px;
+}
+
 .login-modal__field {
   display: flex;
   flex-direction: column;

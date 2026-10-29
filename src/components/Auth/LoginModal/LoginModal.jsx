@@ -20,14 +20,14 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [otpRequestId, setOtpRequestId] = useState(null);
 
   const otpInputRefs = useRef([]);
   const nameInputRef = useRef(null);
   const phoneInputRef = useRef(null);
   const prevIsOpenRef = useRef(false);
 
-  const { sendPhoneOtp, verifyPhoneOtp, completeUserProfile, cleanupRecaptcha } = useAuth();
+  const { sendPhoneOtp, verifyPhoneOtp, completeUserProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -41,28 +41,25 @@ const LoginModal = ({ isOpen, onClose }) => {
       setFullName('');
       setErrorMsg('');
       setIsLoading(false);
-      setConfirmationResult(null);
+      setOtpRequestId(null);
       setTimeout(() => phoneInputRef.current?.focus(), 150);
     } else if (!isOpen && prevIsOpenRef.current) {
       document.body.style.overflow = '';
-      cleanupRecaptcha?.();
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, cleanupRecaptcha]);
+  }, [isOpen]);
 
   // Safe modal close with cleanup
   const handleModalClose = () => {
-    cleanupRecaptcha?.();
     onClose();
   };
 
   // Safe handler to change phone number smoothly
   const handleChangeNumber = () => {
-    cleanupRecaptcha?.();
     setStep(STEP_PHONE);
     setErrorMsg('');
     setOtpValues(['', '', '', '', '', '']);
-    setConfirmationResult(null);
+    setOtpRequestId(null);
     setCountdown(0);
     setCanResend(false);
     setTimeout(() => {
@@ -124,7 +121,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       const res = await sendPhoneOtp(phoneNumber);
-      setConfirmationResult(res.confirmationResult);
+      setOtpRequestId(res.requestId);
       setStep(STEP_OTP);
       setCountdown(30);
       setCanResend(false);
@@ -194,7 +191,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setErrorMsg('');
 
     try {
-      const result = await verifyPhoneOtp(confirmationResult, otpToVerify, `+91${phoneNumber}`);
+      const result = await verifyPhoneOtp(otpRequestId, otpToVerify, `+91${phoneNumber}`);
       
       if (result.isNewUser) {
         // First-time user: ask for full name only!

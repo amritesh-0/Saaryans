@@ -1,18 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  signOut,
-  onAuthStateChanged,
-  updateProfile as updateFirebaseProfile,
-} from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '../config/firebase';
-import {
-  verifyPhoneUser,
   completeProfile as completeProfileApi,
   fetchOrders as fetchOrdersApi,
+  sendWhatsAppOtp,
+  verifyWhatsAppOtp,
 } from '../services/api';
-import { formatAuthError } from '../utils/authErrors';
 import productRed from '../assets/images/product-red-saree.jpg';
 import productGreen from '../assets/images/product-green-saree.jpg';
 import productPurple from '../assets/images/product-purple-saree.jpg';
@@ -64,7 +56,6 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const [firebaseUser, setFirebaseUser] = useState(null);
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('saaryans-token') || null);
   const [authLoading, setAuthLoading] = useState(true);
   const [orders, setOrders] = useState([]);
@@ -122,188 +113,34 @@ export function AuthProvider({ children }) {
     refreshOrders();
   }, []);
 
-  // ─── Firebase Auth Listener ───────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!auth) {
-      setAuthLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        setFirebaseUser(fbUser);
-        try {
-          const idToken = await fbUser.getIdToken();
-          setAuthToken(idToken);
-
-          // Sync profile from backend
-          const data = await verifyPhoneUser(idToken);
-          if (data && !data.isNewUser && data.user) {
-            const u = data.user;
-            setUser({
-              uid: u.uid || fbUser.uid,
-              name: u.fullName,
-              phone: u.phoneNumber || fbUser.phoneNumber || '',
-              email: u.email || '',
-              avatar: u.avatar || u.fullName?.charAt(0).toUpperCase() || 'U',
-              membershipTier: u.membershipTier || 'Silver Member',
-              rewardPoints: Number(u.rewardPoints || 100),
-              joinedDate: u.joinedDate || '',
-            });
-          }
-
-          // Load real orders
-          refreshOrders();
-        } catch (err) {
-          console.warn('[AuthContext] onAuthStateChanged backend sync failed:', err.message);
-        }
-      } else {
-        setFirebaseUser(null);
-        // Don't wipe the session if user navigated away without explicit logout
-        if (!localStorage.getItem('saaryans-user')) {
-          setAuthToken(null);
-        }
-      }
-      setAuthLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [refreshOrders]);
-
-  // ─── reCAPTCHA ────────────────────────────────────────────────────────────
-
-  /**
-   * Safely clears any active reCAPTCHA instance and removes old container elements from DOM.
-   * This completely prevents the "reCAPTCHA has already been rendered in this element" error.
-   */
-  const cleanupRecaptcha = useCallback((containerId = 'recaptcha-container') => {
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-      } catch (err) {
-        console.warn('Could not clear window.recaptchaVerifier:', err);
-      }
-      window.recaptchaVerifier = null;
-    }
-
-    // Safely remove any existing DOM container so grecaptcha cannot find it in its rendered elements cache
-    const existingContainer = document.getElementById(containerId);
-    if (existingContainer) {
-      try {
-        existingContainer.remove();
-      } catch {
-        existingContainer.innerHTML = '';
-      }
-    }
-  }, []);
-
-  /**
-   * Sets up a pristine, brand-new RecaptchaVerifier instance with a clean DOM element.
-   */
-  const setupRecaptcha = useCallback((containerId = 'recaptcha-container') => {
-    if (!auth) return null;
-
-    // 1. Clear any existing verifier and old container
-    cleanupRecaptcha(containerId);
-
-    // 2. Dynamically create a brand-new container on document.body
-    // Because this is a new element object in memory, grecaptcha has NEVER rendered into it!
-    const container = document.createElement('div');
-    container.id = containerId;
-    container.setAttribute('data-recaptcha-managed', 'true');
-    container.style.position = 'fixed';
-    container.style.bottom = '0';
-    container.style.right = '0';
-    container.style.zIndex = '-1';
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
-    document.body.appendChild(container);
-
-    // 3. Initialize fresh RecaptchaVerifier
-    try {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, container, {
-        size: 'invisible',
-        callback: () => {
-          // reCAPTCHA solved
-        },
-        'expired-callback': () => {
-          console.warn('reCAPTCHA expired — resetting.');
-          cleanupRecaptcha(containerId);
-        },
-      });
-
-      return window.recaptchaVerifier;
-    } catch (err) {
-      console.warn('Could not initialise reCAPTCHA:', err);
-      cleanupRecaptcha(containerId);
-      return null;
-    }
-  }, [cleanupRecaptcha]);
+  useEffect(() => { setAuthLoading(false); }, []);
 
   // ─── Auth Actions ─────────────────────────────────────────────────────────
 
   /**
-   * Step 1: Send OTP via Firebase Phone Auth
+   * Step 1: Send OTP via the server-side WhatsApp Cloud API integration.
    */
-  const sendPhoneOtp = useCallback(async (phoneNumber, containerId = 'recaptcha-container') => {
+  const sendPhoneOtp = useCallback(async (phoneNumber) => {
     const clean = phoneNumber.replace(/\D/g, '').slice(-10);
     const formatted = `+91${clean}`;
 
-    if (isFirebaseConfigured && auth) {
-      try {
-        const verifier = setupRecaptcha(containerId);
-        if (!verifier) {
-          throw new Error('Security check could not be initialized. Please refresh the page and try again.');
-        }
-
-        const confirmationResult = await signInWithPhoneNumber(auth, formatted, verifier);
-        return { success: true, confirmationResult, phoneNumber: formatted };
-      } catch (err) {
-        console.error('Firebase signInWithPhoneNumber error:', err);
-        // Always clean up on error so subsequent attempts start fresh
-        cleanupRecaptcha(containerId);
-
-        const friendlyMessage = formatAuthError(err);
-        const enhancedError = new Error(friendlyMessage);
-        enhancedError.code = err.code;
-        throw enhancedError;
-      }
-    }
-
-    // Should not reach here with real credentials — kept as emergency safety net
-    throw new Error('Firebase Phone Auth is not configured. Check your .env file.');
-  }, [cleanupRecaptcha, setupRecaptcha]);
+    const data = await sendWhatsAppOtp(formatted);
+    return { success: true, requestId: data.requestId, phoneNumber: formatted };
+  }, []);
 
   /**
    * Step 2: Verify OTP — returns { isNewUser, user }
    */
-  const verifyPhoneOtp = useCallback(async (confirmationResult, otpCode, phoneNumber) => {
-    if (!confirmationResult || !confirmationResult.confirm) {
+  const verifyPhoneOtp = useCallback(async (requestId, otpCode, phoneNumber) => {
+    if (!requestId) {
       throw new Error('Verification session not found. Please request a new OTP.');
     }
-
-    try {
-      const result = await confirmationResult.confirm(otpCode);
-      const fbUser = result.user;
-      const idToken = await fbUser.getIdToken();
-
-      setAuthToken(idToken);
-      setFirebaseUser(fbUser);
-
-      // Verify user in backend Firestore
-      let data = null;
-      try {
-        data = await verifyPhoneUser(idToken);
-      } catch (backendErr) {
-        console.warn('Backend verifyPhoneUser warning:', backendErr.message);
-        data = { isNewUser: true, user: { uid: fbUser.uid, phoneNumber } };
-      }
-
-      if (data && !data.isNewUser && data.user?.fullName) {
+    const data = await verifyWhatsAppOtp(requestId, otpCode);
+    setAuthToken(data.token);
+    if (!data.isNewUser && data.user?.fullName) {
         const u = data.user;
         const loggedInUser = {
-          uid: u.uid || fbUser.uid,
+          uid: u.uid,
           name: u.fullName,
           phone: u.phoneNumber || phoneNumber,
           email: u.email || '',
@@ -314,19 +151,11 @@ export function AuthProvider({ children }) {
         };
         setUser(loggedInUser);
         localStorage.setItem('saaryans-user', JSON.stringify(loggedInUser));
-        localStorage.setItem('saaryans-token', idToken);
+        localStorage.setItem('saaryans-token', data.token);
         refreshOrders();
         return { isNewUser: false, user: loggedInUser };
-      }
-
-      return { isNewUser: true, user: { uid: fbUser.uid, phone: phoneNumber } };
-    } catch (err) {
-      console.error('Firebase confirm OTP error:', err);
-      const friendlyMessage = formatAuthError(err);
-      const enhancedError = new Error(friendlyMessage);
-      enhancedError.code = err.code;
-      throw enhancedError;
     }
+    return { isNewUser: true, user: { uid: data.user.uid, phone: phoneNumber } };
   }, [refreshOrders]);
 
   /**
@@ -338,7 +167,7 @@ export function AuthProvider({ children }) {
     }
 
     const trimmedName = fullName.trim();
-    const currentToken = authToken || (auth?.currentUser ? await auth.currentUser.getIdToken() : null);
+    const currentToken = authToken;
     if (!currentToken) {
       throw new Error('Session expired. Please sign in again.');
     }
@@ -347,7 +176,7 @@ export function AuthProvider({ children }) {
       const data = await completeProfileApi(currentToken, trimmedName);
       const u = data?.user || {};
       const completedUser = {
-        uid: firebaseUser?.uid || auth?.currentUser?.uid || u.uid,
+        uid: u.uid,
         name: u.fullName || trimmedName,
         phone: u.phoneNumber || phoneNumber || firebaseUser?.phoneNumber || '',
         email: u.email || '',
@@ -357,10 +186,6 @@ export function AuthProvider({ children }) {
         joinedDate: u.joinedDate || '',
       };
 
-      if (auth?.currentUser) {
-        updateFirebaseProfile(auth.currentUser, { displayName: trimmedName }).catch(() => {});
-      }
-
       setUser(completedUser);
       localStorage.setItem('saaryans-user', JSON.stringify(completedUser));
       localStorage.setItem('saaryans-token', currentToken);
@@ -368,24 +193,15 @@ export function AuthProvider({ children }) {
       return completedUser;
     } catch (err) {
       console.error('completeUserProfile error:', err);
-      const friendlyMessage = formatAuthError(err);
-      const enhancedError = new Error(friendlyMessage);
-      enhancedError.code = err.code;
-      throw enhancedError;
+      throw err;
     }
-  }, [authToken, firebaseUser, refreshOrders]);
+  }, [authToken, refreshOrders]);
 
   /**
    * Logout — sign out of Firebase and wipe local state
    */
   const logout = async () => {
-    try {
-      if (auth) await signOut(auth);
-    } catch (err) {
-      console.warn('Firebase sign-out error:', err);
-    }
     setUser(null);
-    setFirebaseUser(null);
     setAuthToken(null);
     setOrders([]);
     localStorage.removeItem('saaryans-user');
@@ -464,7 +280,6 @@ export function AuthProvider({ children }) {
         sendPhoneOtp,
         verifyPhoneOtp,
         completeUserProfile,
-        cleanupRecaptcha,
         logout,
         updateProfile,
         addAddress,

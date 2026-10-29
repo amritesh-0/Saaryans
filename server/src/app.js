@@ -49,7 +49,13 @@ if (config.env !== 'test') {
 }
 
 // Body parsers
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // Meta signs the unparsed webhook body. Retain it only for its webhook route.
+  verify: (req, _res, buffer) => {
+    if (req.originalUrl.split('?')[0] === '/api/v1/auth/whatsapp/webhook') req.rawBody = buffer;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting for API protection

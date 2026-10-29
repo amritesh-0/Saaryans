@@ -18,6 +18,21 @@ export const config = {
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10)
+  },
+  whatsapp: {
+    graphApiVersion: process.env.WHATSAPP_GRAPH_API_VERSION || 'v22.0',
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    templateName: process.env.WHATSAPP_OTP_TEMPLATE_NAME || '',
+    templateLanguageCode: process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE_CODE || 'en_US',
+    templateHasBodyParameter: process.env.WHATSAPP_OTP_TEMPLATE_HAS_BODY_PARAMETER !== 'false',
+    webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
+    appSecret: process.env.META_APP_SECRET || ''
+  },
+  auth: {
+    tokenSecret: process.env.AUTH_TOKEN_SECRET || '',
+    otpTtlMs: parseInt(process.env.WHATSAPP_OTP_TTL_MS || '600000', 10),
+    otpMaxAttempts: parseInt(process.env.WHATSAPP_OTP_MAX_ATTEMPTS || '5', 10)
   }
 };
 

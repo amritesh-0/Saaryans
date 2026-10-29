@@ -1,6 +1,7 @@
 import { auth, isInitialized } from '../config/firebase.js';
 import { errorResponse } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
+import { verifySessionToken } from '../services/whatsappOtpService.js';
 
 /**
  * Middleware to verify Firebase ID Token in Authorization header
@@ -16,6 +17,12 @@ export const verifyToken = async (req, res, next) => {
 
   if (!token) {
     return errorResponse(res, 'Access denied. Malformed authentication token.', 401);
+  }
+
+  const whatsappSession = verifySessionToken(token);
+  if (whatsappSession) {
+    req.user = { uid: whatsappSession.uid, phoneNumber: whatsappSession.phoneNumber, name: '', role: 'customer' };
+    return next();
   }
 
   if (!isInitialized || !auth) {
@@ -94,6 +101,12 @@ export const optionalAuth = async (req, res, next) => {
   const token = authHeader.split('Bearer ')[1].trim();
   if (!token) {
     req.user = null;
+    return next();
+  }
+
+  const whatsappSession = verifySessionToken(token);
+  if (whatsappSession) {
+    req.user = { uid: whatsappSession.uid, phoneNumber: whatsappSession.phoneNumber, name: '', role: 'customer' };
     return next();
   }
 
