@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   completeProfile as completeProfileApi,
   fetchOrders as fetchOrdersApi,
+  requestOrderReturn,
   sendWhatsAppOtp,
   verifyWhatsAppOtp,
 } from '../services/api';
@@ -178,7 +179,7 @@ export function AuthProvider({ children }) {
       const completedUser = {
         uid: u.uid,
         name: u.fullName || trimmedName,
-        phone: u.phoneNumber || phoneNumber || firebaseUser?.phoneNumber || '',
+        phone: u.phoneNumber || phoneNumber || '',
         email: u.email || '',
         avatar: (u.fullName || trimmedName).charAt(0).toUpperCase(),
         membershipTier: u.membershipTier || 'Silver Member',
@@ -251,19 +252,10 @@ export function AuthProvider({ children }) {
 
   // ─── Returns ──────────────────────────────────────────────────────────────
 
-  const requestReturn = (orderId, reason) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: 'Return Requested',
-              canReturn: false,
-              returnStatus: `Return requested (${reason}). Pickup scheduled in 24-48 hrs.`,
-            }
-          : order
-      )
-    );
+  const requestReturn = async (orderId, reason) => {
+    const updated = await requestOrderReturn(orderId, reason);
+    setOrders((prev) => prev.map((order) => order.id === orderId ? normaliseOrder(updated) : order));
+    return updated;
   };
 
   // ─── Context Value ────────────────────────────────────────────────────────

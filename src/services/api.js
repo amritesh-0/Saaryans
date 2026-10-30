@@ -4,11 +4,7 @@
  * All backend communication goes through this module — no direct fetch() calls scattered in components.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-if (!API_BASE_URL) {
-  console.error('[api.js] VITE_API_BASE_URL is not set. Requests will fail.');
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 /**
  * Returns common headers including Authorization token if available
@@ -36,8 +32,13 @@ const request = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
-  const res = await fetch(url, { ...options, headers });
-  const json = await res.json();
+  let res;
+  try {
+    res = await fetch(url, { ...options, headers, credentials: 'same-origin' });
+  } catch {
+    throw new Error('Unable to reach Saaryans. Please check your connection and try again.');
+  }
+  const json = await res.json().catch(() => ({}));
 
   if (!res.ok) {
     const err = new Error(json.message || `Request failed: ${res.status} ${res.statusText}`);
@@ -117,6 +118,10 @@ export const fetchOrders = async () => {
 export const fetchOrderById = async (orderId) => {
   return await request(`/orders/${encodeURIComponent(orderId)}`);
 };
+
+export const requestOrderReturn = async (orderId, reason) => request(`/orders/${encodeURIComponent(orderId)}/return`, {
+  method: 'PATCH', body: JSON.stringify({ reason }),
+});
 
 // ─── Coupons ─────────────────────────────────────────────────────────────────
 

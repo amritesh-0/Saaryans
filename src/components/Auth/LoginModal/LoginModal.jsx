@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CloseIcon, UserIcon, ChevronLeftIcon, EditIcon } from '../../../assets/icons';
 import Button from '../../UI/Button/Button';
 import { useAuth } from '../../../context/AuthContext';
@@ -30,6 +30,9 @@ const LoginModal = ({ isOpen, onClose }) => {
   const { sendPhoneOtp, verifyPhoneOtp, completeUserProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const nextPath = new URLSearchParams(location.search).get('next');
+  const finishLogin = () => navigate(nextPath?.startsWith('/') ? nextPath : '/account', { replace: true });
 
   // Reset state ONLY when modal transitions from closed to open
   useEffect(() => {
@@ -201,7 +204,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         // Already registered user: direct to dashboard!
         showToast(`Welcome back, ${result.user.name}!`, 'success');
         handleModalClose();
-        navigate('/account');
+        finishLogin();
       }
     } catch (err) {
       console.error('OTP Verification Error:', err);
@@ -226,7 +229,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       const completedUser = await completeUserProfile(fullName.trim(), `+91${phoneNumber}`);
       showToast(`Welcome to Saaryans, ${completedUser.name}!`, 'success');
       handleModalClose();
-      navigate('/account');
+      finishLogin();
     } catch (err) {
       console.error('Complete Profile Error:', err);
       setErrorMsg(formatAuthError(err));

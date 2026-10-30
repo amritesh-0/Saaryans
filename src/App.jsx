@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -36,6 +36,13 @@ function ScrollToTop() {
 
 function AppContent() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const loginFromLink = new URLSearchParams(location.search).get('login') === '1';
+  const closeLogin = () => {
+    setIsLoginOpen(false);
+    if (loginFromLink) navigate(location.pathname, { replace: true });
+  };
 
   return (
     <div className="app">
@@ -62,7 +69,7 @@ function AppContent() {
         <Route path="/pay-online" element={<Payment />} />
       </Routes>
       <Footer />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <LoginModal isOpen={isLoginOpen || loginFromLink} onClose={closeLogin} />
     </div>
   );
 }

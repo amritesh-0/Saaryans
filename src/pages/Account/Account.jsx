@@ -143,9 +143,13 @@ const Account = () => {
     setIsAddressModalOpen(false);
   };
 
-  const handleConfirmReturn = (orderId, reason, refundMode) => {
-    requestReturn(orderId, reason, refundMode);
-    showToast(`Return requested for #${orderId}! Courier pickup scheduled in 24-48 hours.`, 'success');
+  const handleConfirmReturn = async (orderId, reason) => {
+    try {
+      await requestReturn(orderId, reason);
+      showToast(`Return requested for #${orderId}! Courier pickup scheduled in 24-48 hours.`, 'success');
+    } catch (error) {
+      showToast(error.message || 'Unable to request return. Please try again.', 'error');
+    }
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -366,8 +370,8 @@ const Account = () => {
                             variant="primary"
                             size="sm"
                             onClick={() => {
-                              addToCart(order.items[0], order.items[0].size, 1);
-                              showToast('Item re-added to your Bag!', 'success');
+                              order.items.forEach((item) => addToCart(item, item.size, item.quantity));
+                              showToast('All available items were re-added to your Bag!', 'success');
                               navigate('/cart');
                             }}
                           >

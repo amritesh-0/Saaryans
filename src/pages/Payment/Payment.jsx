@@ -11,7 +11,7 @@ import './Payment.css';
 
 const Payment = () => {
   const { items, itemCount, grandTotal, totalMRP, discountOnMRP, couponCode, couponDiscount, deliveryFee, clearCart } = useCart();
-  const { refreshOrders } = useAuth();
+  const { refreshOrders, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -54,6 +54,10 @@ const Payment = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/?login=1&next=/payment', { replace: true });
+  }, [isAuthenticated, navigate]);
+
   if (items.length === 0 && !isProcessing) {
     return (
       <main className="payment-page container">
@@ -88,13 +92,17 @@ const Payment = () => {
       showToast('Please enter a valid UPI ID (e.g. name@okhdfcbank)', 'error');
       return;
     }
+    if (selectedMethod === 'upi' && selectedUpiApp === 'custom' && !/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}$/.test(upiId.trim())) {
+      showToast('Please enter a valid UPI ID', 'error');
+      return;
+    }
 
     if (selectedMethod === 'card') {
       if (cardData.number.replace(/\s/g, '').length < 16) {
         showToast('Please enter a valid 16-digit card number', 'error');
         return;
       }
-      if (!cardData.expiry || !cardData.cvv) {
+      if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(cardData.expiry) || !/^[0-9]{3,4}$/.test(cardData.cvv)) {
         showToast('Please fill all card details', 'error');
         return;
       }
@@ -157,8 +165,8 @@ const Payment = () => {
           <div className="payment-processing-overlay" role="dialog" aria-modal="true">
             <div className="payment-processing-box">
               <div className="payment-spinner" />
-              <h3>Processing Secure Payment...</h3>
-              <p>Connecting with payment gateway. Please do not refresh or close.</p>
+              <h3>Confirming your order...</h3>
+              <p>Please do not refresh or close this window.</p>
               <div className="payment-security-shield">
                 <ShieldIcon size={18} />
                 <span>256-Bit SSL Encrypted Transaction</span>

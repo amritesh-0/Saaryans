@@ -30,6 +30,12 @@ export const config = {
     templateUrlButtonIndex: process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX === undefined || process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX === ''
       ? null
       : Number(process.env.WHATSAPP_OTP_TEMPLATE_URL_BUTTON_INDEX),
+    // Approved Meta utility templates. Keep their body parameters in the
+    // order documented in whatsappNotificationService.js.
+    orderConfirmedTemplateName: process.env.WHATSAPP_ORDER_CONFIRMED_TEMPLATE || '',
+    orderShippedTemplateName: process.env.WHATSAPP_ORDER_SHIPPED_TEMPLATE || '',
+    returnCreatedTemplateName: process.env.WHATSAPP_RETURN_CREATED_TEMPLATE || '',
+    orderDetailsUrlButtonIndex: Number(process.env.WHATSAPP_ORDER_DETAILS_URL_BUTTON_INDEX || 0),
     webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
     appSecret: process.env.META_APP_SECRET || ''
   },

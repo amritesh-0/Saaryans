@@ -18,6 +18,13 @@ const whatsappOtpLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many OTP requests. Please try again in 15 minutes.' }
 });
+const whatsappOtpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many verification attempts. Please request a new OTP later.' }
+});
 
 router.post('/whatsapp/send-otp', whatsappOtpLimiter, async (req, res) => {
   try {
@@ -31,7 +38,7 @@ router.post('/whatsapp/send-otp', whatsappOtpLimiter, async (req, res) => {
   }
 });
 
-router.post('/whatsapp/verify-otp', async (req, res) => {
+router.post('/whatsapp/verify-otp', whatsappOtpVerifyLimiter, async (req, res) => {
   try {
     const phoneNumber = verifyOtp(req.body?.requestId, req.body?.otp);
     let uid = `wa_${phoneNumber.replace(/\D/g, '')}`;

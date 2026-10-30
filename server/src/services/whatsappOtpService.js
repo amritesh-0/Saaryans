@@ -72,7 +72,9 @@ export const verifyOtp = (requestId, otp) => {
 };
 
 export const verifyWebhookSignature = (rawBody, signature) => {
-  if (!config.whatsapp.appSecret) return true;
+  // Never accept unsigned webhooks in production.
+  if (!config.whatsapp.appSecret) return !config.isProduction;
+  if (!rawBody || typeof signature !== 'string') return false;
   const expected = `sha256=${crypto.createHmac('sha256', config.whatsapp.appSecret).update(rawBody).digest('hex')}`;
   return typeof signature === 'string' && signature.length === expected.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 };

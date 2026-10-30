@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StepIndicator from '../../components/UI/StepIndicator/StepIndicator';
 import Button from '../../components/UI/Button/Button';
@@ -11,6 +12,7 @@ const Checkout = () => {
   const { items, itemCount, totalMRP, discountOnMRP, couponCode, couponDiscount, deliveryFee, grandTotal } = useCart();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -79,6 +81,18 @@ const Checkout = () => {
         <div className="checkout-empty">
           <h2>Your bag is empty</h2>
           <Link to="/">Go to Shop</Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="checkout-page container">
+        <div className="checkout-empty">
+          <h2>Sign in to continue securely</h2>
+          <p>Your bag is saved. Verify your WhatsApp number before checkout.</p>
+          <Button variant="primary" onClick={() => navigate('/?login=1&next=/checkout')}>SIGN IN WITH WHATSAPP</Button>
         </div>
       </main>
     );

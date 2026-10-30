@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from '../utils/apiResponse.js';
 const router = Router();
 
 // Official platform coupons
-const COUPONS = {
+export const COUPONS = {
   SAARYANS10: {
     code: 'SAARYANS10',
     type: 'percent',
@@ -29,6 +29,15 @@ const COUPONS = {
     label: '20% off on orders above ₹2,000',
     description: 'Festive offer: 20% discount on cart value above ₹2,000',
   },
+};
+
+export const calculateCouponDiscount = (code, subtotal) => {
+  const coupon = COUPONS[String(code || '').toUpperCase().trim()];
+  if (!coupon || subtotal < coupon.minOrder) return { coupon: null, discount: 0 };
+  const discount = coupon.type === 'percent'
+    ? Math.round(subtotal * (coupon.value / 100))
+    : Math.min(coupon.value, subtotal);
+  return { coupon, discount };
 };
 
 /**
@@ -76,12 +85,7 @@ router.post('/validate', (req, res) => {
     );
   }
 
-  let discount = 0;
-  if (coupon.type === 'percent') {
-    discount = Math.round(numericSubtotal * (coupon.value / 100));
-  } else {
-    discount = Math.min(coupon.value, numericSubtotal);
-  }
+  const { discount } = calculateCouponDiscount(cleanCode, numericSubtotal);
 
   return successResponse(
     res,

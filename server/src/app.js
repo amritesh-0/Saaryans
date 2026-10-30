@@ -25,16 +25,19 @@ const corsOptions = {
       'http://127.0.0.1:5173'
     ];
 
-    // Allow vercel preview and production deployments
+    // Preview domains are accepted only outside production. Production should
+    // use an explicit CLIENT_URL to avoid credentialed cross-origin access.
     if (
       allowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.web.app') ||
-      origin.endsWith('.firebaseapp.com')
+      (!config.isProduction && (
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.web.app') ||
+        origin.endsWith('.firebaseapp.com')
+      ))
     ) {
       callback(null, true);
     } else {
-      callback(null, true); // Permissive in dev, can restrict in production
+      callback(new Error('Origin is not allowed by CORS'));
     }
   },
   credentials: true,

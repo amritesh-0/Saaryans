@@ -1,5 +1,8 @@
 import { db, isInitialized } from '../config/firebase.js';
 import logger from '../utils/logger.js';
+import { PRODUCTS } from '../routes/productRoutes.js';
+import { calculateCouponDiscount } from '../routes/couponRoutes.js';
+import { sendOrderWhatsAppNotification } from './whatsappNotificationService.js';
 
 // In-memory store for dev mode / testing when Firebase Admin is not connected
 const devOrdersStore = new Map();
@@ -128,6 +131,23 @@ const formatDate = (date = new Date()) => {
   }).format(date);
 };
 
+// Notifications are post-commit work: an unavailable messaging provider must
+// never turn a successfully placed order or return into an error for a buyer.
+const queueCustomerNotification = (event, order) => {
+  void sendOrderWhatsAppNotification(event, order)
+    .then(async (result) => {
+      const current = devOrdersStore.get(order.orderId) || order;
+      const notifications = {
+        ...(current.notifications || {}),
+        [event]: { ...result, attemptedAt: new Date().toISOString() },
+      };
+      const updated = { ...current, notifications };
+      devOrdersStore.set(order.orderId, updated);
+      if (isInitialized && db) await db.collection('orders').doc(order.orderId).set({ notifications }, { merge: true });
+    })
+    .catch((error) => logger.error(`Unable to record ${event} WhatsApp notification:`, error.message));
+};
+
 /**
  * Create a new order
  */
@@ -137,9 +157,29 @@ export const createOrder = async (orderPayload, user = null) => {
   const estimatedDelivery = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
 
   const deliveryAddress = orderPayload.deliveryAddress || {};
-  const items = Array.isArray(orderPayload.items) ? orderPayload.items : [];
+  const requestedItems = Array.isArray(orderPayload.items) ? orderPayload.items : [];
+  if (!requestedItems.length) throw new Error('Your bag is empty.');
 
-  const total = Number(orderPayload.totalAmount || orderPayload.total || 0);
+  // Resolve prices and product details server-side. Browser totals are never
+  // trusted, which prevents a client from lowering an order amount.
+  const items = requestedItems.map((requested) => {
+    const product = PRODUCTS.find((entry) => String(entry.id) === String(requested.id));
+    if (!product) throw new Error('One or more products are no longer available.');
+    const quantity = Number(requested.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+      throw new Error('Each item quantity must be between 1 and 10.');
+    }
+    if (!product.sizes.includes(requested.size)) throw new Error(`Please select a valid size for ${product.name}.`);
+    return {
+      id: product.id, name: product.name, price: product.price,
+      originalPrice: product.originalPrice, size: requested.size, quantity,
+      image: String(requested.image || '').slice(0, 500), category: product.category,
+    };
+  });
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const { coupon, discount: couponDiscount } = calculateCouponDiscount(orderPayload.couponCode, subtotal);
+  const deliveryFee = subtotal > 0 && subtotal < 999 ? 79 : 0;
+  const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
 
   const orderDoc = {
     id: orderId,
@@ -147,26 +187,17 @@ export const createOrder = async (orderPayload, user = null) => {
     userId: user?.uid || 'guest',
     userPhone: user?.phoneNumber || deliveryAddress.mobile || '',
     userName: user?.name || deliveryAddress.fullName || 'Valued Customer',
-    items: items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: Number(item.price),
-      originalPrice: Number(item.originalPrice || item.price),
-      size: item.size || 'Free Size',
-      quantity: Number(item.quantity || 1),
-      image: item.image || '',
-      category: item.category || 'Saree',
-    })),
+    items,
     total: total,
     totalAmount: total,
     itemCount: items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0),
     deliveryAddress: deliveryAddress,
     shippingAddress: deliveryAddress,
     paymentMethod: orderPayload.paymentMethod || 'UPI',
-    couponCode: orderPayload.couponCode || null,
-    couponDiscount: Number(orderPayload.couponDiscount || 0),
-    deliveryFee: Number(orderPayload.deliveryFee || 0),
-    status: 'In Transit',
+    couponCode: coupon?.code || null,
+    couponDiscount,
+    deliveryFee,
+    status: 'Order Confirmed',
     stepIndex: 1,
     date: formatDate(now),
     orderDate: formatDate(now),
@@ -226,6 +257,7 @@ export const createOrder = async (orderPayload, user = null) => {
 
   // Always keep in memory store as fallback
   devOrdersStore.set(orderId, orderDoc);
+  queueCustomerNotification('orderConfirmed', orderDoc);
 
   return orderDoc;
 };
@@ -272,8 +304,7 @@ export const getOrdersByUser = async (uid, phone = null) => {
     const orderPhone = order.userPhone ? order.userPhone.replace(/\D/g, '').slice(-10) : '';
     const isOwner =
       (uid && order.userId === uid) ||
-      (cleanPhone && orderPhone === cleanPhone) ||
-      order.userId === 'usr_default'; // Include seed orders for smooth demo
+      (cleanPhone && orderPhone === cleanPhone);
 
     if (isOwner) {
       userOrders.push(order);
@@ -294,7 +325,7 @@ export const getOrderById = async (orderId, uid = null) => {
       const doc = await db.collection('orders').doc(orderId).get();
       if (doc.exists) {
         const data = doc.data();
-        if (!uid || data.userId === uid || data.userId === 'guest') {
+        if (uid && data.userId === uid) {
           return data;
         }
       }
@@ -305,7 +336,7 @@ export const getOrderById = async (orderId, uid = null) => {
 
   const cached = devOrdersStore.get(orderId);
   if (cached) {
-    if (!uid || cached.userId === uid || cached.userId === 'guest') {
+    if (uid && cached.userId === uid) {
       return cached;
     }
   }
@@ -313,8 +344,59 @@ export const getOrderById = async (orderId, uid = null) => {
   return null;
 };
 
+export const requestReturn = async (orderId, uid, reason) => {
+  const order = await getOrderById(orderId, uid);
+  if (!order) return null;
+  if (!order.canReturn || order.status !== 'Delivered') throw new Error('This order is not eligible for return.');
+  const updated = {
+    ...order,
+    status: 'Return Requested',
+    canReturn: false,
+    returnStatus: `Return requested${reason ? `: ${String(reason).slice(0, 160)}` : ''}. Pickup will be scheduled within 24–48 hours.`,
+    updatedAt: new Date().toISOString(),
+  };
+  devOrdersStore.set(orderId, updated);
+  if (isInitialized && db) await db.collection('orders').doc(orderId).set(updated, { merge: true });
+  queueCustomerNotification('returnCreated', updated);
+  return updated;
+};
+
+/** Operational action: admin-only route marks a committed order as shipped. */
+export const markOrderShipped = async (orderId, trackingNumber) => {
+  let order = devOrdersStore.get(orderId) || null;
+  if (isInitialized && db) {
+    const doc = await db.collection('orders').doc(orderId).get();
+    if (doc.exists) order = doc.data();
+  }
+  if (!order) return null;
+  if (['Delivered', 'Return Requested', 'Returned'].includes(order.status)) {
+    throw new Error('This order cannot be marked as shipped.');
+  }
+  const now = new Date();
+  const timeline = (order.timeline || []).map((entry) =>
+    entry.title.startsWith('Dispatched')
+      ? { ...entry, time: `${formatDate(now)}, ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, done: true }
+      : entry
+  );
+  const updated = {
+    ...order,
+    status: 'Shipped',
+    stepIndex: 2,
+    trackingNumber: String(trackingNumber || '').trim().slice(0, 80) || 'Pending assignment',
+    dispatchedAt: now.toISOString(),
+    timeline,
+    updatedAt: now.toISOString(),
+  };
+  devOrdersStore.set(orderId, updated);
+  if (isInitialized && db) await db.collection('orders').doc(orderId).set(updated, { merge: true });
+  queueCustomerNotification('orderShipped', updated);
+  return updated;
+};
+
 export default {
   createOrder,
   getOrdersByUser,
   getOrderById,
+  requestReturn,
+  markOrderShipped,
 };

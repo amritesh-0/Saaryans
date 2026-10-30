@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { optionalAuth, verifyToken } from '../middleware/authMiddleware.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import orderService from '../services/orderService.js';
 import logger from '../utils/logger.js';
@@ -10,7 +10,7 @@ const router = Router();
  * POST /api/v1/orders
  * Create new order (supports logged in users and guests)
  */
-router.post('/', optionalAuth, async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const { items, deliveryAddress, totalAmount, paymentMethod, couponCode, couponDiscount, deliveryFee } = req.body;
 
@@ -47,7 +47,7 @@ router.post('/', optionalAuth, async (req, res) => {
  * GET /api/v1/orders
  * Retrieve orders for current user or session
  */
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
     const uid = req.user ? req.user.uid : null;
     const phone = req.user ? req.user.phoneNumber : null;
@@ -64,7 +64,7 @@ router.get('/', optionalAuth, async (req, res) => {
  * GET /api/v1/orders/:id
  * Retrieve details of a single order
  */
-router.get('/:id', optionalAuth, async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const uid = req.user ? req.user.uid : null;
@@ -78,6 +78,29 @@ router.get('/:id', optionalAuth, async (req, res) => {
   } catch (error) {
     logger.error('Error retrieving order:', error);
     return errorResponse(res, 'Failed to retrieve order details', 500);
+  }
+});
+
+router.patch('/:id/return', verifyToken, async (req, res) => {
+  try {
+    const order = await orderService.requestReturn(req.params.id, req.user.uid, req.body?.reason);
+    if (!order) return errorResponse(res, 'Order not found or unavailable for return.', 404);
+    return successResponse(res, order, 'Return request submitted');
+  } catch (error) {
+    return errorResponse(res, error.message || 'Unable to request return', 400);
+  }
+});
+
+// This endpoint is for a back-office fulfilment integration. Firebase custom
+// claim `role: admin` is required; customer WhatsApp sessions cannot invoke it.
+router.patch('/:id/shipped', verifyToken, async (req, res) => {
+  if (req.user?.role !== 'admin') return errorResponse(res, 'Administrator access is required.', 403);
+  try {
+    const order = await orderService.markOrderShipped(req.params.id, req.body?.trackingNumber);
+    if (!order) return errorResponse(res, 'Order not found.', 404);
+    return successResponse(res, order, 'Order marked as shipped and customer notified');
+  } catch (error) {
+    return errorResponse(res, error.message || 'Unable to update shipment', 400);
   }
 });
 

@@ -4,7 +4,8 @@ import { successResponse, errorResponse } from '../utils/apiResponse.js';
 const router = Router();
 
 // Catalog products seed data
-const PRODUCTS = [
+// Server-owned source of truth for checkout pricing.
+export const PRODUCTS = [
   {
     id: 1,
     name: 'Red Banarasi Georgette Saree With Bandhani Weave And Unstitched Blouse Piece',
