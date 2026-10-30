@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { db, auth, isInitialized } from '../config/firebase.js';
+import { db, isInitialized } from '../config/firebase.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
 import config from '../config/index.js';
@@ -34,30 +34,38 @@ router.post('/whatsapp/send-otp', whatsappOtpLimiter, async (req, res) => {
     return successResponse(res, delivery, 'OTP sent on WhatsApp');
   } catch (error) {
     logger.error('WhatsApp OTP send error:', error.message);
-    return errorResponse(res, error.message, 502);
+    const isConfigurationError = /configured|storage is unavailable/i.test(error.message);
+    return errorResponse(res, isConfigurationError ? 'OTP service is temporarily unavailable. Please try again later.' : error.message, isConfigurationError ? 503 : 502);
   }
 });
 
 router.post('/whatsapp/verify-otp', whatsappOtpVerifyLimiter, async (req, res) => {
   try {
-    const phoneNumber = verifyOtp(req.body?.requestId, req.body?.otp);
+    const phoneNumber = await verifyOtp(req.body?.requestId, req.body?.otp);
     let uid = `wa_${phoneNumber.replace(/\D/g, '')}`;
     let existingUser = null;
     if (isInitialized && db) {
-      // Reuse a profile created during the previous Firebase-based login flow.
-      const matches = await db.collection('users').where('phoneNumber', '==', phoneNumber).limit(1).get();
-      if (!matches.empty) {
-        const doc = matches.docs[0];
-        uid = doc.id;
-        if (doc.data()?.fullName?.trim()) existingUser = doc.data();
-      }
-    } else existingUser = devUsersStore.get(uid);
+      // This ID is deterministically derived from the verified number, so the
+      // profile document written at onboarding is read on every later OTP login.
+      // It also avoids a phone-number query/index or formatting mismatch.
+      const doc = await db.collection('users').doc(uid).get();
+      if (doc.exists && doc.data()?.fullName?.trim()) existingUser = doc.data();
+    } else if (config.isProduction) {
+      return errorResponse(res, 'User database is unavailable. Please try again shortly.', 503);
+    } else {
+      existingUser = devUsersStore.get(uid);
+    }
     const token = createSessionToken({ uid, phoneNumber });
     return successResponse(res, {
       token, isNewUser: !existingUser,
       user: existingUser ? { uid, phoneNumber: existingUser.phoneNumber || phoneNumber, fullName: existingUser.fullName, avatar: existingUser.avatar } : { uid, phoneNumber }
     }, 'OTP verified');
-  } catch (error) { return errorResponse(res, error.message, 400); }
+  } catch (error) {
+    const isServiceError = /unavailable|database/i.test(error.message);
+    const expectedOtpError = /OTP|Verification session|incorrect|expired|attempts/i.test(error.message);
+    if (!expectedOtpError || isServiceError) logger.error('WhatsApp OTP verification error:', error.message);
+    return errorResponse(res, expectedOtpError && !isServiceError ? error.message : 'Authentication service is temporarily unavailable. Please try again later.', expectedOtpError && !isServiceError ? 400 : 503);
+  }
 });
 
 router.get('/whatsapp/webhook', (req, res) => {
@@ -113,7 +121,12 @@ router.post('/verify-phone-user', verifyToken, async (req, res) => {
       }, 'New user detected, full name required');
     }
 
-    // 2. Dev mode fallback when Firebase Admin is not initialized
+    if (config.isProduction) {
+      return errorResponse(res, 'User database is unavailable. Please try again shortly.', 503);
+    }
+
+    // 2. Local development fallback when Firebase Admin is not initialized
+    if (config.isProduction) return errorResponse(res, 'User database is unavailable. Please try again shortly.', 503);
     const devUser = devUsersStore.get(uid);
     if (devUser && devUser.fullName && devUser.fullName.trim()) {
       return successResponse(res, {
@@ -145,8 +158,8 @@ router.post('/complete-profile', verifyToken, async (req, res) => {
     const { uid, phoneNumber } = req.user;
     const { fullName } = req.body;
 
-    if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
-      return errorResponse(res, 'Please provide a valid full name (minimum 2 characters)', 400);
+    if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2 || fullName.trim().length > 80 || /[\r\n\t]/.test(fullName)) {
+      return errorResponse(res, 'Please provide a valid full name (2–80 characters)', 400);
     }
 
     const trimmedName = fullName.trim();
@@ -162,7 +175,9 @@ router.post('/complete-profile', verifyToken, async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    // 1. If Firebase is initialized, persist to Firestore and update Auth displayName
+    // 1. Persist to Firestore. WhatsApp users use server-issued sessions rather
+    // than Firebase Authentication accounts, so `uid` is not a Firebase Auth
+    // user and must not be passed to auth.updateUser().
     if (isInitialized && db) {
       const userRef = db.collection('users').doc(uid);
       const existingDoc = await userRef.get();
@@ -174,18 +189,18 @@ router.post('/complete-profile', verifyToken, async (req, res) => {
 
       await userRef.set(mergedPayload, { merge: true });
 
-      if (auth) {
-        await auth.updateUser(uid, { displayName: trimmedName }).catch((err) => {
-          logger.warn('Could not update Firebase displayName:', err.message);
-        });
-      }
-
       return successResponse(res, {
         user: mergedPayload
       }, 'Profile completed successfully');
     }
 
-    // 2. Dev mode fallback
+    // Production must never pretend a profile was saved in an in-memory store:
+    // that state disappears between serverless requests and causes repeat signup.
+    if (config.isProduction) {
+      return errorResponse(res, 'User database is unavailable. Your profile was not saved.', 503);
+    }
+
+    // 2. Local development fallback
     devUsersStore.set(uid, userPayload);
     return successResponse(res, {
       user: userPayload

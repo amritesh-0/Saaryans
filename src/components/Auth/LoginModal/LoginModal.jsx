@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CloseIcon, UserIcon, ChevronLeftIcon, EditIcon } from '../../../assets/icons';
+import { CloseIcon, UserIcon, ChevronLeftIcon, EditIcon, WhatsAppIcon } from '../../../assets/icons';
 import Button from '../../UI/Button/Button';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
@@ -217,8 +217,8 @@ const LoginModal = ({ isOpen, onClose }) => {
   // Step 3: Complete profile for first-time user
   const handleCompleteProfile = async (e) => {
     e?.preventDefault();
-    if (!fullName || fullName.trim().length < 2) {
-      setErrorMsg('Please enter your full name (minimum 2 characters)');
+    if (!fullName || fullName.trim().length < 2 || fullName.trim().length > 80 || /[\r\n\t]/.test(fullName)) {
+      setErrorMsg('Please enter a valid full name (2–80 characters)');
       return;
     }
 
@@ -277,6 +277,10 @@ const LoginModal = ({ isOpen, onClose }) => {
             <p className="login-modal__subtitle">
               Enter your 10-digit mobile number to proceed with OTP verification
             </p>
+            <div className="whatsapp-otp-notice" role="status">
+              <WhatsAppIcon size={18} aria-hidden="true" />
+              <span>We’ll send your one-time password on WhatsApp.</span>
+            </div>
 
             {errorMsg && <div className="login-modal__alert-error">{errorMsg}</div>}
 
@@ -327,7 +331,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           <div className="login-modal__step-content">
             <h2 className="login-modal__title">Verify OTP</h2>
             <div className="login-modal__subtitle">
-              <span>We have sent a 6-digit verification code to</span>
+              <span>We have sent a 6-digit verification code on WhatsApp to</span>
               <div className="otp-target-row">
                 <strong className="otp-target-number">+91 {phoneNumber}</strong>
                 <button
@@ -422,6 +426,7 @@ const LoginModal = ({ isOpen, onClose }) => {
                   ref={nameInputRef}
                   id="first-time-fullname"
                   type="text"
+                  maxLength={80}
                   placeholder="e.g. Priya Sharma"
                   className="login-modal__input"
                   value={fullName}

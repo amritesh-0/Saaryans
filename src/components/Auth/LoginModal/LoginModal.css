@@ -141,6 +141,26 @@
   line-height: 1.5;
 }
 
+.whatsapp-otp-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: -0.8rem 0 1.35rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  border-radius: var(--radius-sm);
+  background: #F0FBF4;
+  color: #167A3D;
+  font-size: 0.8125rem;
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.whatsapp-otp-notice svg {
+  flex: 0 0 auto;
+}
+
 .login-modal__alert-error {
   background: #FFF2F2;
   border-left: 3px solid #E53935;
