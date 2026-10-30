@@ -204,6 +204,18 @@
   margin-top: 2px;
 }
 
+.order-view-all-link {
+  margin-top: var(--space-sm);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-gold);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* Filter pills */
 .order-filters {
   display: flex;

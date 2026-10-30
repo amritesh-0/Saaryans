@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useCart } from '../../context/CartContext';
@@ -38,9 +38,11 @@ const Account = () => {
   const { showToast } = useToast();
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentTab = searchParams.get('tab') || 'orders';
+  const trackedOrderId = searchParams.get('orderId');
 
   // State for Return Modal
   const [returnOrder, setReturnOrder] = useState(null);
@@ -75,9 +77,10 @@ const Account = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/');
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/?login=1&next=${encodeURIComponent(returnTo)}`, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -152,13 +155,18 @@ const Account = () => {
     }
   };
 
-  const filteredOrders = orders.filter((order) => {
+  const matchingOrders = orders.filter((order) => {
     if (orderFilter === 'all') return true;
     if (orderFilter === 'transit') return order.status === 'In Transit';
     if (orderFilter === 'delivered') return order.status === 'Delivered';
     if (orderFilter === 'returned') return order.status.includes('Return');
     return true;
   });
+  // WhatsApp's "View order details" button lands here with orderId so a
+  // customer sees only the order referenced in their notification.
+  const filteredOrders = trackedOrderId
+    ? matchingOrders.filter((order) => order.id === trackedOrderId || order.orderId === trackedOrderId)
+    : matchingOrders;
 
   return (
     <main className="account-page" id="user-dashboard">
@@ -251,8 +259,13 @@ const Account = () => {
               <div className="account-tab-view" id="orders-tab-view">
                 <div className="tab-header-row">
                   <div>
-                    <h1 className="tab-title">Orders & Returns</h1>
+                    <h1 className="tab-title">{trackedOrderId ? `Tracking Order #${trackedOrderId}` : 'Orders & Returns'}</h1>
                     <p className="tab-subtitle">Track deliveries, manage returns, or download invoices</p>
+                    {trackedOrderId && (
+                      <button className="order-view-all-link" onClick={() => setSearchParams({ tab: 'orders' })}>
+                        View all orders
+                      </button>
+                    )}
                   </div>
 
                   {/* Filter Pills */}
